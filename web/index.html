@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vimaka Mesh Studio — Imagem para 3D</title>
+  <meta name="description" content="Estúdio experimental da Vimaka para transformar fotos de produtos em modelos 3D prontos para web.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"><link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23c9ff36' d='M8 8h48L43 56H20z'/%3E%3Cpath d='M20 19h8l5 20 5-20h8L38 48H27z'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header><a class="brand" href="#"><span class="mark">V</span><span>VIMAKA <b>MESH STUDIO</b></span></a><div class="top-status"><i></i> GPU WORKSPACE READY</div><button class="icon-btn" aria-label="Configurações">⚙</button></header>
+  <main>
+    <aside class="sidebar">
+      <div class="step active"><span>01</span><div><b>Entrada</b><small>Imagem do produto</small></div></div>
+      <div class="step"><span>02</span><div><b>Reconstrução real</b><small>Stable Fast 3D</small></div></div>
+      <div class="step"><span>03</span><div><b>Refinamento</b><small>Mesh + materiais</small></div></div>
+      <div class="step"><span>04</span><div><b>Exportação</b><small>GLB / USDZ / OBJ</small></div></div>
+      <div class="sidebar-bottom"><small>PIPELINE</small><strong>Fashion Product v1</strong><div class="meter"><i></i></div><span>4 motores disponíveis</span></div>
+    </aside>
+
+    <section class="workspace">
+      <div class="workspace-head"><div><small>NOVO PROJETO / NEDV-WY29</small><h1>Gerar produto em 3D</h1></div><div class="head-actions"><button class="secondary" id="resetBtn">↺ Reiniciar</button><button class="primary" id="generateBtn">✦ Gerar modelo 3D</button></div></div>
+      <div class="studio-grid">
+        <div class="source-panel panel">
+          <div class="panel-title"><span>IMAGEM DE REFERÊNCIA</span><em>2048 × 2731</em></div>
+          <div class="image-stage" id="dropzone">
+            <img id="sourceImg" src="https://is4.revolveassets.com/images/p4/n/d/NEDV-WY29_V1.jpg" alt="Produto de moda usado como referência para geração 3D">
+            <div class="scanline"></div><div class="corner tl"></div><div class="corner br"></div>
+            <label class="replace">↥ Substituir imagem<input type="file" id="fileInput" accept="image/*"></label>
+          </div>
+          <div class="url-row"><input id="urlInput" value="https://is4.revolveassets.com/images/p4/n/d/NEDV-WY29_V1.jpg" aria-label="URL da imagem"><button id="loadUrl">Carregar</button></div>
+        </div>
+
+        <div class="preview-panel panel">
+          <div class="panel-title"><span>PREVIEW 3D</span><div class="view-tabs"><button class="on">Sólido</button><button>Wireframe</button><button>Textura</button></div></div>
+          <div class="viewer" id="viewer">
+            <div class="grid-floor"></div><div class="axis">Y</div>
+            <div class="model" id="model"><div class="model-inner"><img src="https://is4.revolveassets.com/images/p4/n/d/NEDV-WY29_V1.jpg" alt="Prévia do modelo"><span class="depth-layer d1"></span><span class="depth-layer d2"></span></div></div>
+            <div class="placeholder" id="placeholder"><div class="orb">◈</div><b>Aguardando reconstrução</b><span>O modelo aparecerá aqui em uma visualização interativa.</span></div>
+            <div class="viewer-tools"><button id="rotateBtn">↻</button><button id="zoomIn">＋</button><button id="zoomOut">−</button></div>
+            <div class="viewer-info"><span>0.0°</span><span>Perspectiva</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <section class="panel settings"><div class="panel-title"><span>CONFIGURAÇÃO DO MODELO</span><em>GPU LOCAL</em></div>
+          <div class="field"><label>Motor de reconstrução</label><div class="engine-select" id="engineSelect"><button data-engine="Hunyuan3D 2.1"><b>Hunyuan3D</b><small>Requer mais VRAM</small></button><button data-engine="TRELLIS"><b>TRELLIS</b><small>Requer mais VRAM</small></button><button class="selected" data-engine="SF3D"><b>SF3D</b><small>Ativo · ~6 GB</small></button></div></div>
+          <div class="sliders"><label>Detalhe da geometria <output id="geoOut">82%</output><input id="geo" type="range" min="20" max="100" value="82"></label><label>Fidelidade da textura <output id="texOut">90%</output><input id="tex" type="range" min="20" max="100" value="90"></label></div>
+          <div class="checks"><label><input type="checkbox" checked> Remover fundo</label><label><input type="checkbox" checked> Malha otimizada para web</label><label><input type="checkbox" checked> Gerar mapa PBR</label></div>
+        </section>
+        <section class="panel pipeline"><div class="panel-title"><span>PIPELINE DE PRODUÇÃO</span><em id="pipelineState">PRONTO</em></div>
+          <div class="pipeline-flow"><div class="node"><span>01</span><b>Entrada</b><small>Imagem</small></div><i>→</i><div class="node"><span>02</span><b>Mesh + UV</b><small id="engineLabel">SF3D</small></div><i>→</i><div class="node"><span>03</span><b>Material</b><small>PBR</small></div><i>→</i><div class="node"><span>04</span><b>Saída</b><small>GLB</small></div></div>
+          <div class="progress-wrap"><div class="progress-copy"><span id="progressText">Pronto para processar</span><b id="progressPct">0%</b></div><div class="progress"><i id="progressBar"></i></div></div>
+          <div class="exports"><button disabled id="glbBtn">↓ BAIXAR GLB</button><button disabled id="usdzBtn">USDZ — EM BREVE</button><button disabled id="objBtn">OBJ — EM BREVE</button></div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div><script src="app.js"></script>
+</body></html>
