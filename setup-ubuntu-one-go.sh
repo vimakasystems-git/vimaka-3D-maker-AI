@@ -39,11 +39,15 @@ python3 -m venv "$VENV"
 
 if [[ "$COMPUTE_MODE" == "cuda" ]]; then
   log "Instalando PyTorch com CUDA"
-  "$VENV/bin/pip" install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+  "$VENV/bin/pip" install --upgrade --force-reinstall \
+    torch==2.4.1 torchvision==0.19.1 \
+    --index-url https://download.pytorch.org/whl/cu121
   printf 'VIMAKA_COMPUTE_MODE=cuda\n' > "$APP_DIR/runtime.env"
 else
   log "Instalando PyTorch para CPU"
-  "$VENV/bin/pip" install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+  "$VENV/bin/pip" install --upgrade --force-reinstall \
+    torch==2.4.1 torchvision==0.19.1 \
+    --index-url https://download.pytorch.org/whl/cpu
   printf 'VIMAKA_COMPUTE_MODE=cpu\nSF3D_USE_CPU=1\n' > "$APP_DIR/runtime.env"
 fi
 
