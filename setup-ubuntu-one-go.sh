@@ -50,10 +50,17 @@ fi
 log "Baixando o motor Stable Fast 3D"
 mkdir -p "$APP_DIR/models"
 if [[ ! -d "$MODEL_DIR/.git" ]]; then
-  git clone --depth 1 https://github.com/Stability-AI/stable-fast-3d.git "$MODEL_DIR"
+  git clone --depth 1 --recurse-submodules \
+    https://github.com/Stability-AI/stable-fast-3d.git "$MODEL_DIR"
 else
   git -C "$MODEL_DIR" pull --ff-only
 fi
+
+log "Baixando componentes internos do Stable Fast 3D"
+git -C "$MODEL_DIR" submodule sync --recursive
+git -C "$MODEL_DIR" submodule update --init --recursive --depth 1
+[[ -d "$MODEL_DIR/texture_baker" ]] || die "Submódulo texture_baker não foi baixado."
+[[ -d "$MODEL_DIR/uv_unwrapper" ]] || die "Submódulo uv_unwrapper não foi baixado."
 
 log "Instalando o motor e a API"
 (
