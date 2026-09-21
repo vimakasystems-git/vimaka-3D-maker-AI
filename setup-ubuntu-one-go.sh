@@ -15,12 +15,17 @@ log(){ echo; echo "==> $*"; }
 [[ "${ID:-}" == "ubuntu" ]] || die "Distribuição detectada: ${PRETTY_NAME:-desconhecida}. Use Ubuntu 22.04/24.04."
 [[ "$(uname -m)" == "x86_64" ]] || die "Arquitetura suportada nesta versão: x86_64."
 
-log "Verificando GPU NVIDIA"
-command -v nvidia-smi >/dev/null || die "Instale o driver NVIDIA recomendado, reinicie e execute novamente."
-nvidia-smi >/dev/null || die "O driver NVIDIA existe, mas a GPU não respondeu."
-VRAM_MB="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -1 | tr -d ' ')"
-echo "VRAM detectada: $VRAM_MB MB"
-(( VRAM_MB >= 5800 )) || echo "AVISO: menos de 6 GB de VRAM; pode ocorrer falta de memória."
+log "Detectando modo de processamento"
+COMPUTE_MODE="cpu"
+if command -v nvidia-smi >/dev/null && nvidia-smi >/dev/null 2>&1; then
+  COMPUTE_MODE="cuda"
+  VRAM_MB="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -1 | tr -d ' ')"
+  echo "GPU NVIDIA detectada com $VRAM_MB MB de VRAM."
+  (( VRAM_MB >= 5800 )) || echo "AVISO: menos de 6 GB de VRAM; pode ocorrer falta de memória."
+else
+  echo "GPU NVIDIA não encontrada. O Stable Fast 3D será instalado em modo CPU."
+  echo "Intel UHD e Radeon 530 não executam CUDA; a geração será significativamente mais lenta."
+fi
 
 log "Instalando dependências do Ubuntu"
 sudo apt-get update
@@ -32,8 +37,15 @@ log "Criando ambiente Python isolado"
 python3 -m venv "$VENV"
 "$VENV/bin/pip" install --upgrade pip wheel setuptools==69.5.1
 
-log "Instalando PyTorch com CUDA"
-"$VENV/bin/pip" install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+if [[ "$COMPUTE_MODE" == "cuda" ]]; then
+  log "Instalando PyTorch com CUDA"
+  "$VENV/bin/pip" install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+  printf 'VIMAKA_COMPUTE_MODE=cuda\n' > "$APP_DIR/runtime.env"
+else
+  log "Instalando PyTorch para CPU"
+  "$VENV/bin/pip" install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+  printf 'VIMAKA_COMPUTE_MODE=cpu\nSF3D_USE_CPU=1\n' > "$APP_DIR/runtime.env"
+fi
 
 log "Baixando o motor Stable Fast 3D"
 mkdir -p "$APP_DIR/models"
@@ -55,13 +67,18 @@ else
   "$VENV/bin/huggingface-cli" login
 fi
 
-log "Validando CUDA"
-"$VENV/bin/python" -c 'import torch; assert torch.cuda.is_available(), "CUDA não disponível no PyTorch"; print("CUDA OK:", torch.cuda.get_device_name(0))'
+log "Validando o ambiente"
+if [[ "$COMPUTE_MODE" == "cuda" ]]; then
+  "$VENV/bin/python" -c 'import torch; assert torch.cuda.is_available(), "CUDA não disponível no PyTorch"; print("CUDA OK:", torch.cuda.get_device_name(0))'
+else
+  "$VENV/bin/python" -c 'import torch; print("PyTorch CPU OK:", torch.__version__)'
+fi
 
 chmod +x "$APP_DIR/start.sh"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 echo
 echo "Ambiente pronto."
+echo "Modo de processamento: $COMPUTE_MODE"
 echo "Inicie com: ./start.sh"
 echo "Nesta máquina: http://localhost:$PORT"
 echo "Na rede local: http://$LOCAL_IP:$PORT"
