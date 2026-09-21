@@ -1,0 +1,13 @@
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);let selectedFile=null,poll=null;
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)};
+$('#geo').oninput=e=>$('#geoOut').textContent=e.target.value+'%';$('#tex').oninput=e=>$('#texOut').textContent=e.target.value+'%';
+$('#engineSelect').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.engine!=='SF3D')return toast('Nesta GPU, use SF3D. Outros motores entrarão depois.');$$('#engineSelect button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');$('#engineLabel').textContent='SF3D'};
+function reset(){clearInterval(poll);$('#progressBar').style.width='0';$('#progressPct').textContent='0%';$('#progressText').textContent='Pronto para processar';$('#pipelineState').textContent='PRONTO';$$('.exports button').forEach(b=>b.disabled=true);$('#placeholder').style.display='flex';$('#model').classList.remove('show')}
+function setImage(src){$('#sourceImg').src=src;if(!src.startsWith('blob:'))$('#urlInput').value=src;reset()}
+$('#loadUrl').onclick=()=>{selectedFile=null;setImage($('#urlInput').value.trim());toast('URL carregada')};
+$('#fileInput').onchange=e=>{selectedFile=e.target.files[0];if(selectedFile)setImage(URL.createObjectURL(selectedFile))};
+$('#resetBtn').onclick=reset;
+async function status(job){const r=await fetch('/api/jobs/'+job),j=await r.json();$('#progressBar').style.width=j.progress+'%';$('#progressPct').textContent=j.progress+'%';$('#progressText').textContent=j.message;$('#pipelineState').textContent=j.status.toUpperCase();if(j.status==='completed'){clearInterval(poll);$('#placeholder').style.display='none';$('#model').classList.add('show');const btn=$('#glbBtn');btn.disabled=false;btn.onclick=()=>location.href=j.result;toast('GLB real pronto para download')}if(j.status==='failed'){clearInterval(poll);toast('Falha: '+j.message)}}
+$('#generateBtn').onclick=async()=>{try{const fd=new FormData();if(selectedFile)fd.append('image',selectedFile);else fd.append('image_url',$('#urlInput').value.trim());fd.append('texture_resolution',Number($('#tex').value)>85?'2048':'1024');fd.append('remesh','none');$('#pipelineState').textContent='ENVIANDO';const r=await fetch('/api/jobs',{method:'POST',body:fd}),j=await r.json();if(!r.ok)throw new Error(j.detail||'Falha ao criar job');poll=setInterval(()=>status(j.id),1200);status(j.id)}catch(e){toast(e.message)}};
+$$('.view-tabs button').forEach(b=>b.onclick=()=>{$$('.view-tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on')});
+$('#rotateBtn').onclick=()=>toast('Baixe o GLB para abrir em um visualizador 3D');$('#zoomIn').onclick=$('#zoomOut').onclick=()=>{};
