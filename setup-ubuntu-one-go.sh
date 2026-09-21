@@ -31,7 +31,7 @@ log "Instalando dependências do Ubuntu"
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   git python3 python3-venv python3-dev build-essential ninja-build \
-  libgl1 libglib2.0-0 libegl1 libxrender1 curl
+  libgl1 libglib2.0-0 libegl1 libxrender1 libomp-dev curl
 
 log "Criando ambiente Python isolado"
 python3 -m venv "$VENV"
@@ -49,18 +49,20 @@ fi
 
 log "Baixando o motor Stable Fast 3D"
 mkdir -p "$APP_DIR/models"
-if [[ ! -d "$MODEL_DIR/.git" ]]; then
-  git clone --depth 1 --recurse-submodules \
-    https://github.com/Stability-AI/stable-fast-3d.git "$MODEL_DIR"
-else
+if [[ -d "$MODEL_DIR/.git" ]] && \
+   { [[ ! -f "$MODEL_DIR/texture_baker/setup.py" ]] || [[ ! -f "$MODEL_DIR/uv_unwrapper/setup.py" ]]; }; then
+  BROKEN_BACKUP="$APP_DIR/models/stable-fast-3d.incomplete.$(date +%Y%m%d-%H%M%S)"
+  echo "Clone incompleto detectado. Movendo para: $BROKEN_BACKUP"
+  mv "$MODEL_DIR" "$BROKEN_BACKUP"
+fi
+if [[ -d "$MODEL_DIR/.git" ]]; then
   git -C "$MODEL_DIR" pull --ff-only
+else
+  git clone --depth 1 https://github.com/Stability-AI/stable-fast-3d.git "$MODEL_DIR"
 fi
 
-log "Baixando componentes internos do Stable Fast 3D"
-git -C "$MODEL_DIR" submodule sync --recursive
-git -C "$MODEL_DIR" submodule update --init --recursive --depth 1
-[[ -d "$MODEL_DIR/texture_baker" ]] || die "Submódulo texture_baker não foi baixado."
-[[ -d "$MODEL_DIR/uv_unwrapper" ]] || die "Submódulo uv_unwrapper não foi baixado."
+[[ -f "$MODEL_DIR/texture_baker/setup.py" ]] || die "O clone não contém texture_baker/setup.py."
+[[ -f "$MODEL_DIR/uv_unwrapper/setup.py" ]] || die "O clone não contém uv_unwrapper/setup.py."
 
 log "Instalando o motor e a API"
 (
