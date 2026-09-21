@@ -56,7 +56,10 @@ else
 fi
 
 log "Instalando o motor e a API"
-"$VENV/bin/pip" install -r "$MODEL_DIR/requirements.txt"
+(
+  cd "$MODEL_DIR"
+  "$VENV/bin/pip" install -r requirements.txt
+)
 "$VENV/bin/pip" install -r "$APP_DIR/server/requirements.txt"
 
 log "Autorizando download do modelo"
