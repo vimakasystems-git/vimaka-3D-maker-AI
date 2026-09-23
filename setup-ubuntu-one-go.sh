@@ -35,7 +35,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 log "Criando ambiente Python isolado"
 python3 -m venv "$VENV"
-"$VENV/bin/pip" install --upgrade pip wheel setuptools==69.5.1
+"$VENV/bin/pip" install --upgrade pip wheel 'setuptools>=77.0.3,<81'
 
 if [[ "$COMPUTE_MODE" == "cuda" ]]; then
   log "Instalando PyTorch com CUDA"
@@ -54,7 +54,7 @@ fi
 log "Baixando o motor Stable Fast 3D"
 mkdir -p "$APP_DIR/models"
 if [[ -d "$MODEL_DIR/.git" ]] && \
-   { [[ ! -f "$MODEL_DIR/texture_baker/setup.py" ]] || [[ ! -f "$MODEL_DIR/uv_unwrapper/setup.py" ]]; }; then
+   { [[ ! -d "$MODEL_DIR/texture_baker" ]] || [[ ! -d "$MODEL_DIR/uv_unwrapper" ]]; }; then
   BROKEN_BACKUP="$APP_DIR/models/stable-fast-3d.incomplete.$(date +%Y%m%d-%H%M%S)"
   echo "Clone incompleto detectado. Movendo para: $BROKEN_BACKUP"
   mv "$MODEL_DIR" "$BROKEN_BACKUP"
@@ -65,6 +65,10 @@ else
   git clone --depth 1 https://github.com/Stability-AI/stable-fast-3d.git "$MODEL_DIR"
 fi
 
+log "Inicializando submódulos do Stable Fast 3D"
+git -C "$MODEL_DIR" submodule sync --recursive
+git -C "$MODEL_DIR" submodule update --init --recursive --depth 1
+
 [[ -f "$MODEL_DIR/texture_baker/setup.py" ]] || die "O clone não contém texture_baker/setup.py."
 [[ -f "$MODEL_DIR/uv_unwrapper/setup.py" ]] || die "O clone não contém uv_unwrapper/setup.py."
 
@@ -74,6 +78,7 @@ log "Instalando o motor e a API"
   "$VENV/bin/pip" install -r requirements.txt
 )
 "$VENV/bin/pip" install -r "$APP_DIR/server/requirements.txt"
+"$VENV/bin/python" -m uvicorn --version >/dev/null || die "Uvicorn não instalado no ambiente virtual."
 
 log "Autorizando download do modelo"
 if [[ -n "${HF_TOKEN:-}" ]]; then
